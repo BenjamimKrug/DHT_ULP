@@ -5,6 +5,7 @@
 #include "soc/rtc_io_reg.h"
 #include "soc/rtc_cntl_reg.h"
 #include "driver/rtc_io.h"
+#include "soc/rtc_io_periph.h"
 
 #ifndef SOC_GPIO_PIN_COUNT
 #define SOC_GPIO_PIN_COUNT 40
@@ -22,42 +23,6 @@
 #define HULP_ULP_RESERVE_MEM CONFIG_ESP32_ULP_COPROC_RESERVE_MEM
 
 #include "sdkconfig.h"
-
-
-#if CONFIG_IDF_TARGET_ESP32
-#if ESP_IDF_VERSION_MAJOR > 4
-#include "esp_private/esp_clk.h"
-
-#else
-/**
- * @brief Pin function information for a single RTCIO pad's.
- *
- * This is an internal function of the driver, and is not usually useful
- * for external use.
- */
-typedef struct {
-  uint32_t reg;        /*!< Register of RTC pad, or 0 if not an RTC GPIO */
-  uint32_t mux;        /*!< Bit mask for selecting digital pad or RTC pad */
-  uint32_t func;       /*!< Shift of pad function (FUN_SEL) field */
-  uint32_t ie;         /*!< Mask of input enable */
-  uint32_t pullup;     /*!< Mask of pullup enable */
-  uint32_t pulldown;   /*!< Mask of pulldown enable */
-  uint32_t slpsel;     /*!< If slpsel bit is set, slpie will be used as pad input enabled signal in sleep mode */
-  uint32_t slpie;      /*!< Mask of input enable in sleep mode */
-  uint32_t slpoe;      /*!< Mask of output enable in sleep mode */
-  uint32_t hold;       /*!< Mask of hold enable */
-  uint32_t hold_force; /*!< Mask of hold_force bit for RTC IO in RTC_CNTL_HOLD_REG */
-  uint32_t drv_v;      /*!< Mask of drive capability */
-  uint32_t drv_s;      /*!< Offset of drive capability */
-  int rtc_num;         /*!< GPIO number (corresponds to RTC pad) */
-} rtc_io_desc_t;
-#endif
-#include "esp32/ulp.h"
-#define HULP_ULP_RESERVE_MEM CONFIG_ESP32_ULP_COPROC_RESERVE_MEM
-
-#else
-#error "Target not supported"
-#endif
 
 
 #ifdef CONFIG_HULP_MACRO_OPTIMISATIONS

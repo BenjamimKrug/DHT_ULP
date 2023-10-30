@@ -6,6 +6,7 @@
 #include "soc/rtc.h"
 #include "esp32-hal-log.h"
 #include "esp_system.h"
+#include "esp_sleep.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -36,17 +37,7 @@ extern "C" {
 
   esp_err_t hulp_configure_pin(gpio_num_t pin, rtc_gpio_mode_t mode, gpio_pull_mode_t pull_mode, uint32_t level);
 
-  static void hulp_set_start_delay(void) {
-    /*
-        ULP is not officially supported if RTC peripherals domain is powered on, however this is often desirable.
-        The only observed bug is that, in deep sleep, the ULP may return to sleep very soon after starting up (typically after
-        just the first instruction), resulting in an apparent doubled wakeup period.
-        To fix this, the ULP start wait needs to be increased slightly (from the default 0x10).
-        Note that ulp_set_wakeup_period adjusts for this setting so timing should be unaffected. There should also, therefore,
-        be no side effects of setting this when unnecessary (ie. RTC peripherals not forced on).
-    */
-    REG_SET_FIELD(RTC_CNTL_TIMER2_REG, RTC_CNTL_ULPCP_TOUCH_START_WAIT, 0x20);
-  }
+  void hulp_set_start_delay(void);
 
   void hulp_peripherals_on(void);
 
