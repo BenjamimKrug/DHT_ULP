@@ -36,7 +36,7 @@ public:
 private:
   gpio_num_t dat_pin;
   uint8_t _type = DHT22;
-  uint32_t _lastreadtime, _maxcycles;
+  uint32_t _lastreadtime;
   bool _firstreading;
   bool _lastresult;
 };
