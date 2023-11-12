@@ -44,8 +44,8 @@ esp_err_t DHT_ULP::begin() {
     I_GPIO_SET(dat_pin, 1),  //digitalWrite(DHT_PIN, HIGH)
     M_LABEL(DELAY_250),
     M_DELAY_US_5000_20000(10000),
-    I_ADDI(R0, R2, 1),  //R2++
-    I_MOVR(R2, R0),     //R0 = R2, moves R2 into R0 to compare with MAX_CYCLES
+    I_ADDI(R2, R2, 1),  //R2++
+    I_MOVR(R0, R2),     //R0 = R2, moves R2 into R0 to compare with MAX_CYCLES
     M_BL(DELAY_250, 25),
 
     I_GPIO_OUTPUT_EN(dat_pin),     //pinMode(DHT_PIN, OUTPUT)
@@ -67,16 +67,16 @@ esp_err_t DHT_ULP::begin() {
     //GET FIRST 80us low and high pulses
     I_MOVI(R2, 0),                     //R2 = 0, count = 0
     M_LABEL(EXPECT_FIRST_PULSE_LOW),   //expect low pulse
-    I_ADDI(R0, R2, 1),                 //R2++
-    I_MOVR(R2, R0),                    //R0 = R2, moves R2 into R0 to compare with MAX_CYCLES
+    I_ADDI(R2, R2, 1),                 //R2++
+    I_MOVR(R0, R2),                    //R0 = R2, moves R2 into R0 to compare with MAX_CYCLES
     M_BGE(ERROR_TIMEOUT, MAX_CYCLES),  //if(R0 > max_cycles), if the count has passed the maximum value
     I_GPIO_READ(dat_pin),              //R0 = digitalRead(dht_pin)
     M_BL(EXPECT_FIRST_PULSE_LOW, 1),   //while(R0 < 1)
 
     I_MOVI(R2, 0),                      //R2 = 0, count = 0
     M_LABEL(EXPECT_FIRST_PULSE_HIGH),   //expect high pulse
-    I_ADDI(R0, R2, 1),                  //R2++
-    I_MOVR(R2, R0),                     //R0 = R2, moves R2 into R0 to compare with MAX_CYCLES
+    I_ADDI(R2, R2, 1),                  //R2++
+    I_MOVR(R0, R2),                     //R0 = R2, moves R2 into R0 to compare with MAX_CYCLES
     M_BGE(ERROR_TIMEOUT, MAX_CYCLES),   //if(R0 > max_cycles), if the count has passed the maximum value
     I_GPIO_READ(dat_pin),               //R0 = digitalRead(dht_pin)
     M_BGE(EXPECT_FIRST_PULSE_HIGH, 1),  //while(R0 >= 1),
@@ -93,8 +93,8 @@ esp_err_t DHT_ULP::begin() {
     //Expect a low pulse of 50us
     I_MOVI(R2, 0),                     //R2 = 0, count = 0
     M_LABEL(EXPECT_PULSE_LOW),         //expect low pulse
-    I_ADDI(R0, R2, 1),                 //R2++
-    I_MOVR(R2, R0),                    //R0 = R2, moves R2 into R0 to compare with MAX_CYCLES
+    I_ADDI(R2, R2, 1),                 //R2++
+    I_MOVR(R0, R2),                    //R0 = R2, moves R2 into R0 to compare with MAX_CYCLES
     M_BGE(ERROR_TIMEOUT, MAX_CYCLES),  //if(R0 > max_cycles), if the count has passed the maximum value
     I_GPIO_READ(dat_pin),              //R0 = digitalRead(dht_pin)
     M_BL(EXPECT_PULSE_LOW, 1),         //while(R0 < 1)
@@ -104,8 +104,8 @@ esp_err_t DHT_ULP::begin() {
     //Expect a high pulse of 28us or 70us
     I_MOVI(R2, 0),                     //R2 = 0, count = 0
     M_LABEL(EXPECT_PULSE_HIGH),        //expect high pulse
-    I_ADDI(R0, R2, 1),                 //R2++
-    I_MOVR(R2, R0),                    //R0 = R2, moves R2 into R0 to compare with MAX_CYCLES
+    I_ADDI(R2, R2, 1),                 //R2++
+    I_MOVR(R0, R2),                    //R0 = R2, moves R2 into R0 to compare with MAX_CYCLES
     M_BGE(ERROR_TIMEOUT, MAX_CYCLES),  //if(R0 > max_cycles), if the count has passed the maximum value
     I_GPIO_READ(dat_pin),              //R0 = digitalRead(dht_pin)
     M_BGE(EXPECT_PULSE_HIGH, 1),       //while(R0 >= 1),
@@ -137,8 +137,8 @@ esp_err_t DHT_ULP::begin() {
     M_LABEL(CHECKSUM_TEST),
     I_GET(R1, R2, dht_values),//read the value from dht_values[R2] into R1
     I_ADDR(R3, R3, R1),       //R3 += R1
-    I_ADDI(R0, R2, 1),        //R2++
-    I_MOVR(R2, R0),           //R0 = R2, moves R2 into R0 to compare with MAX_CYCLES
+    I_ADDI(R2, R2, 1),        //R2++
+    I_MOVR(R0, R2),           //R0 = R2, moves R2 into R0 to compare with MAX_CYCLES
     M_BL(CHECKSUM_TEST, 4),   //while R2 < 4, keeps adding the values
     I_GET(R1, R2, dht_values),//read dht_values[4] into R1, to be compared against the checksum
     I_ANDI(R3, R3, 0xFF),     //logical AND of the checksum and 256
@@ -276,7 +276,7 @@ bool DHT_ULP::startReading() {
   _lastreadtime = millis();
   byte_count.val = 0;
   dht_values[4].val = dht_values[3].val = dht_values[2].val = dht_values[1].val = dht_values[0].val = 0;
-  esp_err_t error = ulp_run(0);
+  ulp_run(0);
   hulp_peripherals_on();
   _lastresult = true;
   return _lastresult;
