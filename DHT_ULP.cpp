@@ -64,9 +64,6 @@ esp_err_t DHT_ULP::begin() {
     I_GPIO_READ(dat_pin),               //R0 = digitalRead(dht_pin)
     M_BGE(EXPECT_FIRST_PULSE_HIGH, 1),  //while(R0 >= 1),
 
-    //Receive 5 bytes of data
-    I_MOVI(R1, 0),              //R1 = 0, resets the bit counter
-    I_GET(R0, R1, byte_count),  //loads byte_count into the registers to work with it
     //receive 5 bytes of data
     M_LABEL(RECEIVE_DATA),
     I_GET(R3, R0, dht_values),//read the current byte of data
