@@ -99,14 +99,14 @@ esp_err_t DHT_ULP::begin() {
     I_SUBR(R0, R0, R2),            //R0 = R0 - R2, gets the diference between the low cycle and high cycle
     M_BL(FINISH_BIT_READ, 32767),  //if(highCycle - lowCycle < 32767), basically if(highCycle < lowCycle), then it skips the bit set
 
-    I_ORI(R3, R3, 1),           //R3 |= 1; sets the current bit, won't be executed
+    I_ORI(R3, R3, 1),           //R3 |= 1; sets the current bit, won't be executed if the comparison above is true
 
     M_LABEL(FINISH_BIT_READ),  //finish the process of bit reading
     I_ADDI(R1, R1, 1),         //R1++;
     I_MOVR(R0, R1),            //R0 = R1; moves R1 into R0 to use in the comparison
     M_BL(RECEIVE_BYTE, 8),     //if (R0 < 8) goto RECEIVE_BYTE; read another bit of data if we haven't read 8 yet
 
-    I_MOVI(R1, 0),              //R1 = 0, resets the bit counter
+    I_MOVI(R1, 0),              //R1 = 0, resets the bit counter and is also used for the I_PUT operation bellow
     I_GET(R0, R1, byte_count),  //R0 = byte_count; loads byte_count into R0 to work with it
     I_PUT(R3, R0, dht_values),  //dht_values[R0] = R3; saves the current byte into RTC memory
     I_ADDI(R0, R0, 1),          //R0++;
