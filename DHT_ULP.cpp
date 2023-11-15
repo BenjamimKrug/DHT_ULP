@@ -36,111 +36,118 @@ esp_err_t DHT_ULP::begin() {
   };
 
   const ulp_insn_t program[] = {
-    I_GPIO_OUTPUT_EN(dat_pin),     //pinMode(DHT_PIN, OUTPUT)
-    I_GPIO_SET(dat_pin, 0),        //digitalWrite(DHT_PIN, LOW)
-    M_DELAY_US_5000_20000(18000),  //delay(18)
+    I_GPIO_OUTPUT_EN(dat_pin),     //pinMode(dat_pin, OUTPUT);
+    I_GPIO_SET(dat_pin, 0),        //digitalWrite(dat_pin, LOW);
+    M_DELAY_US_5000_20000(18000),  //delay(18);
 
     I_GPIO_OUTPUT_DIS(dat_pin),
-    I_GPIO_INPUT_EN(dat_pin),   //pinMode(DHT_PIN, INPUT)
-    I_MOVI(R2, 0),              //R2 = 0
-    I_MOVI(R1, 0),              //R1 = 0, resets the bit counter
-    I_PUT(R2, R1, byte_count),  //saves 0 into byte_count variable on the RTC memory
-    M_DELAY_US_10_100(10),      //delayMicros(40)
+    I_GPIO_INPUT_EN(dat_pin),   //pinMode(dat_pin, INPUT);
+    I_MOVI(R1, 0),              //R1 = 0;
+    M_DELAY_US_10_100(10),      //delayMicros(10); wait a bit for the sensor to have time to wake up and respond
 
     //GET FIRST low and high pulses to indicate sensor presence
-    I_MOVI(R2, 0),                     //R2 = 0, count = 0
+    I_MOVI(R2, 0),                     //R2 = 0; zero the loop count
     M_LABEL(EXPECT_FIRST_PULSE_LOW),   //expect low pulse
-    I_ADDI(R2, R2, 1),                 //R2++
-    I_MOVR(R0, R2),                    //R0 = R2, moves R2 into R0 to compare with MAX_CYCLES
-    M_BGE(ERROR_TIMEOUT, MAX_CYCLES),  //if(R0 > max_cycles), if the count has passed the maximum value
-    I_GPIO_READ(dat_pin),              //R0 = digitalRead(dht_pin)
-    M_BL(EXPECT_FIRST_PULSE_LOW, 1),   //while(R0 < 1)
+    I_ADDI(R2, R2, 1),                 //R2++;
+    I_MOVR(R0, R2),                    //R0 = R2; moves R2 into R0 to compare it with MAX_CYCLES
+    M_BGE(ERROR_TIMEOUT, MAX_CYCLES),  //if(R0 > MAX_CYCLES) goto ERROR_TIMEOUT;
+    I_GPIO_READ(dat_pin),              //R0 = digitalRead(dat_pin);
+    M_BL(EXPECT_FIRST_PULSE_LOW, 1),   //if (R0 < 1) goto EXPECT_FIRST_PULSE_LOW; effectively creates a do while() loop
 
-    I_MOVI(R2, 0),                      //R2 = 0, count = 0
+    I_MOVI(R2, 0),                      //R2 = 0; zero the loop count
     M_LABEL(EXPECT_FIRST_PULSE_HIGH),   //expect high pulse
-    I_ADDI(R2, R2, 1),                  //R2++
-    I_MOVR(R0, R2),                     //R0 = R2, moves R2 into R0 to compare with MAX_CYCLES
-    M_BGE(ERROR_TIMEOUT, MAX_CYCLES),   //if(R0 > max_cycles), if the count has passed the maximum value
-    I_GPIO_READ(dat_pin),               //R0 = digitalRead(dht_pin)
-    M_BGE(EXPECT_FIRST_PULSE_HIGH, 1),  //while(R0 >= 1),
+    I_ADDI(R2, R2, 1),                  //R2++;
+    I_MOVR(R0, R2),                     //R0 = R2, moves R2 into R0 to compare it with MAX_CYCLES
+    M_BGE(ERROR_TIMEOUT, MAX_CYCLES),   //if(R0 > MAX_CYCLES) goto ERROR_TIMEOUT;
+    I_GPIO_READ(dat_pin),               //R0 = digitalRead(dat_pin);
+    M_BGE(EXPECT_FIRST_PULSE_HIGH, 1),  //if (R0 >= 1) goto EXPECT_FIRST_PULSE_HIGH;
 
     //receive 5 bytes of data
     M_LABEL(RECEIVE_DATA),
-    I_GET(R3, R0, dht_values),//read the current byte of data
+    I_MOVI(R3, 0),//R3 = 0; zeros the current byte
 
     //receive 1 byte of data
     M_LABEL(RECEIVE_BYTE),
+
     //Expect a low pulse of 50us
-    I_MOVI(R2, 0),                     //R2 = 0, count = 0
+    I_MOVI(R2, 0),                     //R2 = 0;
     M_LABEL(EXPECT_PULSE_LOW),         //expect low pulse
-    I_ADDI(R2, R2, 1),                 //R2++
-    I_MOVR(R0, R2),                    //R0 = R2, moves R2 into R0 to compare with MAX_CYCLES
-    M_BGE(ERROR_TIMEOUT, MAX_CYCLES),  //if(R0 > max_cycles), if the count has passed the maximum value
-    I_GPIO_READ(dat_pin),              //R0 = digitalRead(dht_pin)
-    M_BL(EXPECT_PULSE_LOW, 1),         //while(R0 < 1)
-    I_MOVI(R0, 0),
-    I_PUT(R2, R0, lowCycle),
+    I_ADDI(R2, R2, 1),                 //R2++;
+    I_MOVR(R0, R2),                    //R0 = R2; moves R2 into R0 to compare it with MAX_CYCLES
+    M_BGE(ERROR_TIMEOUT, MAX_CYCLES),  //if(R0 > MAX_CYCLES) goto ERROR_TIMEOUT;
+    I_GPIO_READ(dat_pin),              //R0 = digitalRead(dat_pin);
+    M_BL(EXPECT_PULSE_LOW, 1),         //if (R0 == 0) goto EXPECT_PULSE_LOW; 
+    //it is checking if it is smaller than 1, but since the only value smaller than 1 in this case is 0 it has the same effect as R0 == 0
+    I_MOVI(R0, 0),                     //R0 = 0; only needed because for I_PUT
+    //we need to set R1 to 0 because every I_PUT call treats the RTC variable as an array essentially, as bellow:
+    I_PUT(R2, R0, lowCycle),           //lowCycle[R0] = R2;
 
     //Expect a high pulse of 28us or 70us
-    I_MOVI(R2, 0),                     //R2 = 0, count = 0
+    I_MOVI(R2, 0),                     //R2 = 0;
     M_LABEL(EXPECT_PULSE_HIGH),        //expect high pulse
     I_ADDI(R2, R2, 1),                 //R2++
-    I_MOVR(R0, R2),                    //R0 = R2, moves R2 into R0 to compare with MAX_CYCLES
-    M_BGE(ERROR_TIMEOUT, MAX_CYCLES),  //if(R0 > max_cycles), if the count has passed the maximum value
-    I_GPIO_READ(dat_pin),              //R0 = digitalRead(dht_pin)
-    M_BGE(EXPECT_PULSE_HIGH, 1),       //while(R0 >= 1),
+    I_MOVR(R0, R2),                    //R0 = R2;, moves R2 into R0 to compare it with MAX_CYCLES
+    M_BGE(ERROR_TIMEOUT, MAX_CYCLES),  //if(R0 > MAX_CYCLES) goto ERROR_TIMEOUT;
+    I_GPIO_READ(dat_pin),              //R0 = digitalRead(dat_pin);
+    M_BGE(EXPECT_PULSE_HIGH, 1),       //if(R0 >= 1) goto EXPECT_PULSE_HIGH; keep waiting to get the end of the high pulse
 
     //Process the Pulse information that it received
     M_LABEL(PROCESS_PULSE),  //PROCESS PULSE information
-    I_LSHI(R3, R3, 1),       //R1 <<= 1, left shifts the value since the received data is MSB first
-    I_GET(R0, R0, lowCycle),
-    I_SUBR(R0, R0, R2),             //R0 = R0 - R2, gets the diference between the low cycle and high cycle
-    M_BL(FINISH_BIT_READ, 32767),  //if(highCycle - lowCycle < 0), basically if(highCycle < lowCycle), then it skips the bit set
+    I_LSHI(R3, R3, 1),       //R3 <<= 1; left shifts the current byte since the received data is MSB first
+    I_GET(R0, R0, lowCycle), //R0 = lowCycle[R0]; load the low cycle value so we can compare it; 
+    // we can use R0 as the index here because we know that if it got to this point the previous digitalRead resulted in 0 and that value is in R0
+    I_SUBR(R0, R0, R2),            //R0 = R0 - R2, gets the diference between the low cycle and high cycle
+    M_BL(FINISH_BIT_READ, 32767),  //if(highCycle - lowCycle < 32767), basically if(highCycle < lowCycle), then it skips the bit set
 
-    I_ORI(R3, R3, 1),           //R1 |= 1, sets the current bit
+    I_ORI(R3, R3, 1),           //R3 |= 1; sets the current bit, won't be executed
 
     M_LABEL(FINISH_BIT_READ),  //finish the process of bit reading
-    I_ADDI(R1, R1, 1),         //R1++
-    I_MOVR(R0, R1),            //moves R1 into R0 to use in the comparison
-    M_BL(RECEIVE_BYTE, 8),     //while R0 < 8, read another bit of data
+    I_ADDI(R1, R1, 1),         //R1++;
+    I_MOVR(R0, R1),            //R0 = R1; moves R1 into R0 to use in the comparison
+    M_BL(RECEIVE_BYTE, 8),     //if (R0 < 8) goto RECEIVE_BYTE; read another bit of data if we haven't read 8 yet
 
     I_MOVI(R1, 0),              //R1 = 0, resets the bit counter
-    I_GET(R0, R1, byte_count),  //loads byte_count into R0 to work with it
-    I_PUT(R3, R0, dht_values),
-    I_ADDI(R0, R0, 1),          //byte_count++
-    I_PUT(R0, R1, byte_count),  //saves byte_count back into RTC memory
-    M_BL(RECEIVE_DATA, 5),      //while it hasn't received 5 bytes of data, goto RECEIVE_BYTE
+    I_GET(R0, R1, byte_count),  //R0 = byte_count; loads byte_count into R0 to work with it
+    I_PUT(R3, R0, dht_values),  //dht_values[R0] = R3; saves the current byte into RTC memory
+    I_ADDI(R0, R0, 1),          //R0++;
+    I_PUT(R0, R1, byte_count),  //byte_count = R0; saves the byte_count back into RTC memory
+    M_BL(RECEIVE_DATA, 5),      //if (R0 < 5) goto RECEIVE_BYTE; while it hasn't received 5 bytes of data
 
     //Checksum test to verify if the data has been received correctly
-    I_MOVI(R2, 0),             //R2 = 0, resets the data position to read all 5 bytes again
-    I_MOVI(R3, 0),             //R3 = 0, resets the register to use for the checksum
+    I_MOVI(R2, 0),             //R2 = 0; resets the data position to read all 5 bytes again
+    I_MOVI(R3, 0),             //R3 = 0; resets the register to use for the checksum
+
     M_LABEL(CHECKSUM_TEST),
-    I_GET(R1, R2, dht_values),//read the value from dht_values[R2] into R1
-    I_ADDR(R3, R3, R1),       //R3 += R1
-    I_ADDI(R2, R2, 1),        //R2++
+    I_GET(R1, R2, dht_values),//R1 = dht_values[R0];
+    I_ADDR(R3, R3, R1),       //R3 += R1;
+    I_ADDI(R2, R2, 1),        //R2++;
     I_MOVR(R0, R2),           //R0 = R2, moves R2 into R0 to compare with MAX_CYCLES
-    M_BL(CHECKSUM_TEST, 4),   //while R2 < 4, keeps adding the values
-    I_GET(R1, R2, dht_values),//read dht_values[4] into R1, to be compared against the checksum
-    I_ANDI(R3, R3, 0xFF),     //logical AND of the checksum and 256
-    I_MOVI(R2, 0),            //R2 = 0, just used for the I_PUT instruction
-    I_PUT(R3, R2, checkSum), //saves the checksum into RTC memory
-    I_SUBR(R0, R3, R1),       //R3(checksum) minus R1(dht_values[4]) is put into R0
-    I_MOVI(R3, ESP_OK),       //set R3 as ESP_OK
-    M_BL(FINISH_READING, 1), //check if R0 is equal to 0, 
-	  //if the checksum is bigger than dht_values[4] R0 will obviously be bigger than 0, but if it is smaller than dht_values[4] R0 will be bigger than 32767 due to overflow
-	  //so checking if R0 is smaller than 1 solves for both situations
-    M_BX(ERROR_CHECKSUM),    //there has been a corruption in the data, so jump to checksum error label
+    M_BL(CHECKSUM_TEST, 4),   //if (R0 < 4) goto CHECKSUM_TEST; keeps adding the values
+
+    I_GET(R1, R2, dht_values),//R1 = dht_values[R2]; read dht_values[4] into R1, to be compared against the checksum
+    I_ANDI(R3, R3, 0xFF),     //R3 |= 0xFF; logical AND of the checksum and 256
+    I_MOVI(R2, 0),            //R2 = 0; just used for the I_PUT instruction
+    I_PUT(R3, R2, checkSum),  //checkSum[R2] = R3;
+    I_SUBR(R0, R3, R1),       //R0 = R3 - R1; we subtract one from another in order to compare them
+    I_MOVI(R3, ESP_OK),       //R3 = ESP_OK; 
+    //this is the only spot where we can set the error code as ESP_OK, if there is a checksum problem it'll be overwritten
+
+    M_BL(FINISH_READING, 1),  //if(R0 == 0) goto FINISH_READING;
+	  // just as before, by checking if it is smaller than 1, we are actually checking if it is equal to 0
+
+    M_BX(ERROR_CHECKSUM),    // goto ERROR_CHECKSUM; 
+    //if it gets to this point there has been a corruption in the data since the checkSum and dhtValues[4] differ, so jump to checksum error label
 
     M_LABEL(ERROR_TIMEOUT),
-    I_MOVI(R3, ESP_ERR_TIMEOUT),
-    M_BX(FINISH_READING),
+    I_MOVI(R3, ESP_ERR_TIMEOUT), // R3 = ESP_ERR_TIMEOUT;
+    M_BX(FINISH_READING),        // goto FINISH_READING; jump to FINISH_READING unconditionally
 
     M_LABEL(ERROR_CHECKSUM),
-    I_MOVI(R3, ESP_ERR_INVALID_CRC),//invalid CRC code is used to indicate invalid Checksum
+    I_MOVI(R3, ESP_ERR_INVALID_CRC),// R3 = ESP_ERR_INVALID_CRC; invalid CRC code is used to indicate invalid Checksum
 	
     M_LABEL(FINISH_READING),
     I_MOVI(R2, 0),                 //R2 = 0, just used for the I_PUT instruction
-    I_PUT(R3, R2, dht_error_code), //saves the error code into RTC memory
+    I_PUT(R3, R2, dht_error_code), //dht_error_code[R0] = R3; saves the error code into RTC memory
     I_END(),
     I_HALT(),
   };
