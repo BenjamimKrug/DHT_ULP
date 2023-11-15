@@ -21,7 +21,6 @@ DHT_ULP::DHT_ULP(gpio_num_t _dat_pin, uint8_t _dht_type) {
 esp_err_t DHT_ULP::begin() {
   enum {
     FINISH_READING,
-    REQUEST_DATA,
     RECEIVE_DATA,
     RECEIVE_BYTE,
     EXPECT_FIRST_PULSE_LOW,
@@ -37,24 +36,9 @@ esp_err_t DHT_ULP::begin() {
   };
 
   const ulp_insn_t program[] = {
-    I_GPIO_OUTPUT_DIS(dat_pin),
-    I_GPIO_INPUT_EN(dat_pin),  //pinMode(DHT_PIN, INPUT)
-    I_GPIO_PULLUP(dat_pin, 1),
-    I_GPIO_SET(dat_pin, 1),  //digitalWrite(DHT_PIN, HIGH)
-    M_LABEL(DELAY_250),
-    M_DELAY_US_5000_20000(10000),
-    I_ADDI(R2, R2, 1),  //R2++
-    I_MOVR(R0, R2),     //R0 = R2, moves R2 into R0 to compare with MAX_CYCLES
-    M_BL(DELAY_250, 25),
-
     I_GPIO_OUTPUT_EN(dat_pin),     //pinMode(DHT_PIN, OUTPUT)
     I_GPIO_SET(dat_pin, 0),        //digitalWrite(DHT_PIN, LOW)
-    M_DELAY_US_5000_20000(20000),  //delay(20)
-
-    M_LABEL(REQUEST_DATA),   //start requesting data
-    I_GPIO_SET(dat_pin, 1),  //digitalWrite(DHT_PIN, HIGH)
-    M_DELAY_US_10_100(40),   //delayMicros(40)
-
+    M_DELAY_US_5000_20000(18000),  //delay(18)
 
     I_GPIO_OUTPUT_DIS(dat_pin),
     I_GPIO_INPUT_EN(dat_pin),   //pinMode(DHT_PIN, INPUT)
@@ -63,7 +47,7 @@ esp_err_t DHT_ULP::begin() {
     I_PUT(R2, R1, byte_count),  //saves 0 into byte_count variable on the RTC memory
     M_DELAY_US_10_100(10),      //delayMicros(40)
 
-    //GET FIRST 80us low and high pulses
+    //GET FIRST low and high pulses to indicate sensor presence
     I_MOVI(R2, 0),                     //R2 = 0, count = 0
     M_LABEL(EXPECT_FIRST_PULSE_LOW),   //expect low pulse
     I_ADDI(R2, R2, 1),                 //R2++
@@ -80,7 +64,7 @@ esp_err_t DHT_ULP::begin() {
     I_GPIO_READ(dat_pin),               //R0 = digitalRead(dht_pin)
     M_BGE(EXPECT_FIRST_PULSE_HIGH, 1),  //while(R0 >= 1),
 
-
+    //Receive 5 bytes of data
     I_MOVI(R1, 0),              //R1 = 0, resets the bit counter
     I_GET(R0, R1, byte_count),  //loads byte_count into the registers to work with it
     //receive 5 bytes of data
@@ -146,8 +130,8 @@ esp_err_t DHT_ULP::begin() {
     I_SUBR(R0, R3, R1),       //R3(checksum) minus R1(dht_values[4]) is put into R0
     I_MOVI(R3, ESP_OK),       //set R3 as ESP_OK
     M_BL(FINISH_READING, 1), //check if R0 is equal to 0, 
-	//if the checksum is bigger than dht_values[4] R0 will obviously be bigger than 0, but if it is smaller than dht_values[4] R0 will be bigger than 32767 due to overflow
-	//so checking if R0 is smaller than 1 solves for both situations
+	  //if the checksum is bigger than dht_values[4] R0 will obviously be bigger than 0, but if it is smaller than dht_values[4] R0 will be bigger than 32767 due to overflow
+	  //so checking if R0 is smaller than 1 solves for both situations
     M_BX(ERROR_CHECKSUM),    //there has been a corruption in the data, so jump to checksum error label
 
     M_LABEL(ERROR_TIMEOUT),
