@@ -10,7 +10,6 @@ RTC_DATA_ATTR ulp_var_t byte_count;
 RTC_DATA_ATTR ulp_var_t dht_error_code;
 RTC_DATA_ATTR ulp_var_t lowCycle;
 RTC_DATA_ATTR ulp_var_t checkSum;
-RTC_DATA_ATTR ulp_var_t diference[8];
 RTC_DATA_ATTR ulp_var_t dht_values[5];
 
 DHT_ULP::DHT_ULP(gpio_num_t _dat_pin, uint8_t _dht_type) {
@@ -142,6 +141,8 @@ esp_err_t DHT_ULP::begin() {
     M_BL(CHECKSUM_TEST, 4),   //while R2 < 4, keeps adding the values
     I_GET(R1, R2, dht_values),//read dht_values[4] into R1, to be compared against the checksum
     I_ANDI(R3, R3, 0xFF),     //logical AND of the checksum and 256
+    I_MOVI(R2, 0),            //R2 = 0, just used for the I_PUT instruction
+    I_PUT(R3, R2, checkSum), //saves the checksum into RTC memory
     I_SUBR(R0, R3, R1),       //R3(checksum) minus R1(dht_values[4]) is put into R0
     I_MOVI(R3, ESP_OK),       //set R3 as ESP_OK
     M_BL(FINISH_READING, 1), //check if R0 is equal to 0, 
@@ -251,7 +252,7 @@ void DHT_ULP::print_values() {
   printf("Woken up!%i\n", byte_count.val);
   printf("error code: %s\n", esp_err_to_name(dht_error_code.val));
 
-  if (dht_values[4].val != ((dht_values[0].val + dht_values[1].val + dht_values[2].val + dht_values[3].val) & 0xFF) || dht_error_code.val == ESP_ERR_INVALID_CRC) {
+  if (dht_error_code.val == ESP_ERR_INVALID_CRC) {
     Serial.println(F("Checksum failure!"));
     Serial.println(checkSum.val);
   }
