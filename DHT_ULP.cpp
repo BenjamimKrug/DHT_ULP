@@ -97,7 +97,8 @@ esp_err_t DHT_ULP::begin() {
     I_GET(R0, R0, lowCycle), //R0 = lowCycle[R0]; load the low cycle value so we can compare it; 
     // we can use R0 as the index here because we know that if it got to this point the previous digitalRead resulted in 0 and that value is in R0
     I_SUBR(R0, R0, R2),            //R0 = R0 - R2, gets the diference between the low cycle and high cycle
-    M_BL(FINISH_BIT_READ, 32767),  //if(highCycle - lowCycle < 32767), basically if(highCycle < lowCycle), then it skips the bit set
+    M_BL(FINISH_BIT_READ, 32767),  //if (lowCycle - highCycle < 32767) goto FINISH_BIT_READ; 
+    //basically if(highCycle < lowCycle), then it skips the bit set
 
     I_ORI(R3, R3, 1),           //R3 |= 1; sets the current bit, won't be executed if the comparison above is true
 
