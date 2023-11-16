@@ -131,20 +131,17 @@ esp_err_t DHT_ULP::begin() {
     I_SUBR(R0, R3, R1),       //R0 = R3 - R1; we subtract one from another in order to compare them
     I_MOVI(R3, ESP_OK),       //R3 = ESP_OK; 
     //this is the only spot where we can set the error code as ESP_OK, if there is a checksum problem it'll be overwritten
-
     M_BL(FINISH_READING, 1),  //if(R0 == 0) goto FINISH_READING;
 	  // just as before, by checking if it is smaller than 1, we are actually checking if it is equal to 0
 
-    M_BX(ERROR_CHECKSUM),    // goto ERROR_CHECKSUM; 
     //if it gets to this point there has been a corruption in the data since the checkSum and dhtValues[4] differ, so jump to checksum error label
+    M_LABEL(ERROR_CHECKSUM),
+    I_MOVI(R3, ESP_ERR_INVALID_CRC),// R3 = ESP_ERR_INVALID_CRC; invalid CRC code is used to indicate inval
+    M_BX(FINISH_READING),        // goto FINISH_READING; jump to FINISH_READING unconditionally to skip the timeout handle
 
     M_LABEL(ERROR_TIMEOUT),
     I_MOVI(R3, ESP_ERR_TIMEOUT), // R3 = ESP_ERR_TIMEOUT;
-    M_BX(FINISH_READING),        // goto FINISH_READING; jump to FINISH_READING unconditionally
 
-    M_LABEL(ERROR_CHECKSUM),
-    I_MOVI(R3, ESP_ERR_INVALID_CRC),// R3 = ESP_ERR_INVALID_CRC; invalid CRC code is used to indicate invalid Checksum
-	
     M_LABEL(FINISH_READING),
     I_MOVI(R2, 0),                 //R2 = 0, just used for the I_PUT instruction
     I_PUT(R3, R2, dht_error_code), //dht_error_code[R0] = R3; saves the error code into RTC memory
