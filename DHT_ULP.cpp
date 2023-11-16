@@ -126,7 +126,6 @@ esp_err_t DHT_ULP::begin() {
     M_BL(CHECKSUM_TEST, 4),   //if (R0 < 4) goto CHECKSUM_TEST; keeps adding the values
 
     I_GET(R1, R2, dht_values),//R1 = dht_values[R2]; read dht_values[4] into R1, to be compared against the checksum
-    I_ANDI(R3, R3, 0xFF),     //R3 |= 0xFF; logical AND of the checksum and 256
     I_MOVI(R2, 0),            //R2 = 0; just used for the I_PUT instruction
     I_PUT(R3, R2, checkSum),  //checkSum[R2] = R3;
     I_SUBR(R0, R3, R1),       //R0 = R3 - R1; we subtract one from another in order to compare them
