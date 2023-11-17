@@ -219,6 +219,14 @@ float DHT_ULP::readHumidity(void) {
   return f;
 }
 
+uint16_t DHT_ULP::readingInterval(){
+  switch(_type) {
+    case DHT11:
+      return 1150;
+    default:
+      return 2000;
+  }
+}
 
 //boolean isFahrenheit: True == Fahrenheit; False == Celcius
 float DHT_ULP::computeHeatIndex(float temperature, float percentHumidity, bool isFahrenheit) {
@@ -255,7 +263,7 @@ bool DHT_ULP::startReading() {
     // ie there was a rollover
     _lastreadtime = 0;
   }
-  if (!_firstreading && ((currenttime - _lastreadtime) < 2000)) {
+  if (!_firstreading && ((currenttime - _lastreadtime) < readingInterval())) {
     return _lastresult;  // return last correct measurement
   }
   _firstreading = false;

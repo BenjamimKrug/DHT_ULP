@@ -46,5 +46,5 @@ void loop() {
         "%.2f*F\n",
         h, t, f, hic, hif);
   }
-  vTaskDelay(700);
+  vTaskDelay(850);//needs a bit more time
 }
