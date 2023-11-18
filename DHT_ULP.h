@@ -33,7 +33,8 @@ public:
   float computeHeatIndex(float temperature, float percentHumidity, bool isFahrenheit = true);
   float readHumidity(void);
   uint16_t readingInterval();
-  
+  uint8_t getStatus();
+
 private:
   gpio_num_t dat_pin;
   uint8_t _type = DHT22;

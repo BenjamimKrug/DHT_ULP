@@ -151,7 +151,7 @@ esp_err_t DHT_ULP::begin() {
 
   esp_err_t error = ESP_OK;
 
-  error = hulp_configure_pin(dat_pin, RTC_GPIO_MODE_INPUT_OUTPUT, GPIO_PULLUP_ONLY, 0);//configures the GPIO pin as PULLUP
+  error = hulp_configure_pin(dat_pin, RTC_GPIO_MODE_INPUT_OUTPUT, GPIO_FLOATING, 1);//configures the GPIO pin as PULLUP
 
   size_t load_addr = 0;
   size_t size = sizeof(program) / sizeof(ulp_insn_t);
@@ -163,6 +163,10 @@ esp_err_t DHT_ULP::begin() {
   SET_PERI_REG_MASK(RTC_CNTL_OPTIONS0_REG, RTC_CNTL_BIAS_CORE_FOLW_8M);
   SET_PERI_REG_MASK(RTC_CNTL_OPTIONS0_REG, RTC_CNTL_BIAS_SLEEP_FOLW_8M);
   return error;
+}
+
+uint8_t DHT_ULP::getStatus(){
+  return dht_error_code.val;
 }
 
 float DHT_ULP::readTemperature(bool S) {
